@@ -23,4 +23,3 @@ impl<'a> Buttons<'a> {
         }
     }
 }
-

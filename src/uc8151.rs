@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use embassy_rp::{
     gpio::{Input, Level, Output, Pull},
     peripherals::*,
@@ -5,7 +6,6 @@ use embassy_rp::{
     Peripherals,
 };
 use embassy_time::Timer;
-use bitflags::bitflags;
 
 pub struct Uc8151<'a> {
     spi: Spi<'a, SPI0, Blocking>,
@@ -262,9 +262,10 @@ impl<'a> Uc8151<'a> {
         );
 
         self.command(Register::PFS, &[PfsFlags::FRAMES_1.bits()]);
-        self.command(Register::TSE, &[
-            (TseFlags::TEMP_INTERNAL | TseFlags::OFFSET_0).bits()
-        ]);
+        self.command(
+            Register::TSE,
+            &[(TseFlags::TEMP_INTERNAL | TseFlags::OFFSET_0).bits()],
+        );
 
         // tcon setting
         self.command(Register::TCON, &[0x22]);
@@ -281,20 +282,20 @@ impl<'a> Uc8151<'a> {
 
     pub async fn update(&mut self, framebuffer: &[u8]) {
         // turn on
-		self.command(Register::PON, &[]);
+        self.command(Register::PON, &[]);
 
         // disable partial mode
-		self.command(Register::PTOU, &[]);
+        self.command(Register::PTOU, &[]);
 
         // transmit framebuffer
-		self.command(Register::DTM2, framebuffer);
+        self.command(Register::DTM2, framebuffer);
         // data stop
-		self.command(Register::DSP, &[]);
+        self.command(Register::DSP, &[]);
 
-		self.command(Register::DRF, &[]); // start display refresh
+        self.command(Register::DRF, &[]); // start display refresh
 
         self.busy_wait().await;
 
-		self.command(Register::POF, &[]); // turn off
+        self.command(Register::POF, &[]); // turn off
     }
 }
