@@ -20,6 +20,8 @@ board that it should accept a new firmware. You can do this by holding the *boot
 button while you press the *reset* button. These two buttons are located next to each
 other on the back side of the board.
 
+## Running Code on Badger2040
+
 Next, you can flash any firmware onto the board by using a `cargo run`. For example,
 this is how you can get the USB serial example running on your board:
 
@@ -37,9 +39,16 @@ screen /dev/cu.usbmodem101
 
 Helpful hint: to get out of screen, you can use `Ctrl+A` followed by `Ctrl+\`.
 
+## Reading
+
+- [UC8151 driver from Pimoroni](https://github.com/pimoroni/pimoroni-pico/blob/main/drivers/uc8151/uc8151.hpp).
+- [Legacy UC8151 driver from Pimoroni](https://github.com/pimoroni/pimoroni-pico/blob/main/drivers/uc8151_legacy/uc8151_legacy.hpp)
+- [Pimoroni Badger2040 C++ Examples](https://github.com/pimoroni/pimoroni-pico/tree/main/examples/badger2040)
+- [Pimoroni Badger2040 Crate (uses embedded-hal)](https://docs.rs/pimoroni_badger2040/0.5.0/pimoroni_badger2040/)
+
 ## License
 
-MIT.
+MIT or Apache 2.0.
 
 [rustup]: https://rustup.rs/
 [embassy]: https://github.com/embassy-rs/embassy
