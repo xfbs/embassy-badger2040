@@ -5,7 +5,7 @@ This repository contains some code to get you started with using the
 takes inspiration from the official [firmware][badger2040-firmware] for the
 device, but porting it to Rust.
 
-![Badger 2040](badger-2040.webp)
+![Badger 2040](badger-2040.jpg)
 
 ## Getting Started
 
