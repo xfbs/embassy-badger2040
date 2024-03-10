@@ -35,6 +35,8 @@ port will be named something like `/dev/cu.usbmodem101`, while on Linux it might
 screen /dev/cu.usbmodem101
 ```
 
+Helpful hint: to get out of screen, you can use `Ctrl+A` followed by `Ctrl+\`.
+
 ## License
 
 MIT.
