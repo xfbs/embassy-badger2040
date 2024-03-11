@@ -16,6 +16,9 @@ use embassy_rp::{
     usb::{Driver, InterruptHandler},
 };
 use embassy_time::Timer;
+use embedded_graphics::{geometry::{Point, Size}, mono_font::{ascii::FONT_9X18_BOLD, MonoTextStyle}, pixelcolor::BinaryColor, primitives::{Primitive, PrimitiveStyle, Rectangle}, Drawable};
+use embedded_text::{alignment::HorizontalAlignment, style::{HeightMode, TextBoxStyleBuilder}, TextBox};
+use uc8151::WIDTH;
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
@@ -65,6 +68,33 @@ async fn main(spawner: Spawner) {
 
     uc8151.init().await;
     uc8151.update(&[0; (128 * 296) / 8]).await;
+
+    log::info!("Printing to display when pressed");
+
+    buttons.a.wait_for_rising_edge().await;
+
+    let text = "Hi! I'm Aron.\nDon't talk to\nme about\nEmbedded Rust.";
+    // Note we're setting the Text color to `Off`. The driver is set up to treat Off as Black so that BMPs work as expected.
+    let character_style = MonoTextStyle::new(&FONT_9X18_BOLD, BinaryColor::Off);
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Center)
+        //.vertical_alignment(embedded_text::alignment::VerticalAlignment::Top)
+        .paragraph_spacing(6)
+        .build();
+    // Bounding box for our text. Fill it with the opposite color so we can read the text.
+    let bounds = Rectangle::new(Point::new(157, 10), Size::new(WIDTH - 157, 0));
+    bounds
+        .into_styled(PrimitiveStyle::with_fill(BinaryColor::On))
+        .draw(&mut uc8151)
+        .unwrap();
+    // Create the text box and apply styling options.
+    let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
+    // Draw the text box.
+    text_box.draw(&mut uc8151).unwrap();
+    uc8151.draw_updates().await;
+
+    log::info!("Entering loop");
 
     // Configure CS
     //let mut cs = Output::new(touch_cs, Level::Low);

@@ -393,6 +393,7 @@ dependencies = [
  "embassy-usb",
  "embassy-usb-logger",
  "embedded-graphics",
+ "embedded-graphics-core",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "embedded-hal-bus",

@@ -3,9 +3,14 @@ use embassy_rp::{
     gpio::{Input, Level, Output, Pull},
     peripherals::*,
     spi::{self, Blocking, Spi},
-    Peripherals,
 };
 use embassy_time::Timer;
+use embedded_graphics::{
+    draw_target::DrawTarget,
+    geometry::{Dimensions, OriginDimensions, Size},
+    pixelcolor::BinaryColor,
+    Pixel,
+};
 
 pub struct Uc8151<'a> {
     spi: Spi<'a, SPI0, Blocking>,
@@ -13,7 +18,14 @@ pub struct Uc8151<'a> {
     chip_select: Output<'a>,
     dc: Output<'a>,
     reset: Output<'a>,
+    frame_buffer: [u8; (128 * 296) / 8],
 }
+
+// fixme: u32 but iterator for drawing is i32..
+/// Screen pixel width
+pub const WIDTH: i32 = 296;
+/// Screen pixel height
+pub const HEIGHT: i32 = 128;
 
 pub enum Register {
     PSR = 0x00,
@@ -196,15 +208,17 @@ impl<'a> Uc8151<'a> {
             chip_select: Output::new(cs, Level::High),
             dc: Output::new(dc, Level::Low),
             reset: Output::new(reset, Level::High),
+            frame_buffer: [0; (128 * 296) / 8],
         }
     }
 
     pub fn command(&mut self, register: Register, data: &[u8]) {
         self.chip_select.set_low();
         self.dc.set_low();
-        self.spi.blocking_write(&[register as u8]);
+        // no errors right now in spi lib
+        let _ = self.spi.blocking_write(&[register as u8]);
         self.dc.set_high();
-        self.spi.blocking_write(data);
+        let _ = self.spi.blocking_write(data);
         self.chip_select.set_high();
     }
 
@@ -280,6 +294,13 @@ impl<'a> Uc8151<'a> {
         self.busy_wait().await;
     }
 
+    /// Update from internal draw buffer.
+    ///
+    /// Call this after performing draw calls.
+    pub async fn draw_updates(&mut self) {
+        self.update(&self.frame_buffer.clone()).await;
+    }
+
     pub async fn update(&mut self, framebuffer: &[u8]) {
         // turn on
         self.command(Register::PON, &[]);
@@ -297,5 +318,42 @@ impl<'a> Uc8151<'a> {
         self.busy_wait().await;
 
         self.command(Register::POF, &[]); // turn off
+    }
+}
+
+impl<'a> DrawTarget for Uc8151<'a> {
+    type Color = BinaryColor;
+    type Error = core::convert::Infallible;
+    // adapted from https://github.com/9names/uc8151-rs
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        let bb = self.bounding_box();
+
+        pixels
+            .into_iter()
+            .filter(|Pixel(pos, _color)| bb.contains(*pos))
+            .for_each(|Pixel(pos, color)| {
+                if pos.x >= WIDTH || pos.y >= HEIGHT {
+                    // TODO: error out
+                    return;
+                }
+
+                let address = ((pos.y / 8) + (pos.x * (HEIGHT / 8))) as usize;
+
+                let o: u8 = 7 - (pos.y as u8 & 0b111); // bit offset within byte
+                let m: u8 = !(1 << o); // bit mask for byte
+                let b: u8 = ((color == BinaryColor::Off) as u8) << o; // bit value shifted to position
+
+                self.frame_buffer[address] = (self.frame_buffer[address] & m) | b;
+            });
+
+        Ok(())
+    }
+}
+impl<'a> OriginDimensions for Uc8151<'a> {
+    fn size(&self) -> Size {
+        Size::new(WIDTH as _, HEIGHT as _)
     }
 }

@@ -51,6 +51,7 @@ bitflags = "2.4.2"
 bitvec = { version = "1.0.1", default-features = false }
 
 # display support
+embedded-graphics-core = "0.4"
 uc8151 = { git = "https://github.com/0xpr03/uc8151-rs.git" }
 fugit = "0.3.7"
 pimoroni_badger2040 = "0.5.0"
