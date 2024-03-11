@@ -8,6 +8,7 @@
 use core::borrow::BorrowMut;
 use core::cell::RefCell;
 
+use cortex_m::prelude::_embedded_hal_blocking_delay_DelayMs;
 use embassy_embedded_hal::shared_bus::blocking::spi::{SpiDeviceWithConfig};
 use embassy_executor::Spawner;
 use embassy_futures::select::{self, select};
@@ -132,7 +133,7 @@ async fn main(spawner: Spawner) {
     // let busy = pins.inky_busy.into_pull_up_input();
     // let reset = pins.inky_res.into_push_pull_output();
     
-    let busy = Input::new(p.PIN_26, Pull::Down);
+    let busy = Input::new(p.PIN_26, Pull::Up);
     let reset = Output::new(p.PIN_21, Level::High);
 
     // let spi = spi.init(
@@ -147,7 +148,7 @@ async fn main(spawner: Spawner) {
     display_config.frequency = DISPLAY_FREQ;
     display_config.phase = spi::Phase::CaptureOnSecondTransition;
     display_config.polarity = spi::Polarity::IdleHigh;
-    let spi: Spi<'_, _, Blocking> = Spi::new_blocking(p.SPI0, clk, p.PIN_19, unsafe {p.PIN_20.clone_unchecked()}, display_config.clone());
+    let spi: Spi<'_, _, Blocking> = Spi::new_blocking(p.SPI0, clk, p.PIN_19, unsafe {p.PIN_16.clone_unchecked()}, display_config.clone());
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
     // let display_spi = SpiDeviceWithConfig::new(&spi_bus, unsafe {p.PIN_17.clone_unchecked()}, display_config);
     
@@ -161,15 +162,16 @@ async fn main(spawner: Spawner) {
     
 
     // let mut count_down = timer.count_down();
-    let mut cs = Output::new(p.PIN_17,Level::High);//Output::new(p.PIN_17, Level::High);
-    let mut dc = Output::new(p.PIN_20, Level::High);
+    let cs = Output::new(p.PIN_17,Level::High);//Output::new(p.PIN_17, Level::High);
+    let dc = Output::new(p.PIN_20, Level::Low);
     let mut display = uc8151::Uc8151::new(spi_dev1, cs, dc, busy, reset);
     // display init end
 
 
     log::info!("Finished display setup noodles");
     display.disable();
-
+    let mut delay = Delay;
+    delay.delay_ms(10_u32);
     display.enable();
     while display.is_busy() {}
 
@@ -180,7 +182,7 @@ async fn main(spawner: Spawner) {
     // fixme: original is clocks.system_clock.freq().to_Hz()
     // let mut delay = cortex_m::delay::Delay::new(core.SYST, embassy_rp::clocks::clk_sys_freq());
     // Initialise display. Using the default LUT speed setting
-    let _ = display.setup(&mut Delay, uc8151::LUT::Internal);
+    let _ = display.setup(&mut Delay, uc8151::LUT::Internal).unwrap();
     let text = "Hi! I'm Aron.\nDon't talk to\nme about\nEmbedded Rust.";
     // Note we're setting the Text color to `Off`. The driver is set up to treat Off as Black so that BMPs work as expected.
     let character_style = MonoTextStyle::new(&FONT_9X18_BOLD, BinaryColor::Off);
