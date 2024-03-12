@@ -37,19 +37,26 @@ impl Framebuffer {
         self.bits[address] = (self.bits[address] & m) | b;
     }
 
-    pub fn real(&self, x: usize, y: usize) -> Option<bool> {
+    pub fn real(&self, _x: usize, _y: usize) -> Option<bool> {
         None
     }
 }
 
-// TODO: implement
-// https://docs.rs/embedded-graphics-core/latest/embedded_graphics_core/draw_target/trait.DrawTarget.html
-pub struct Display<'a> {
-    pub uc8151: Uc8151<'a>,
-    pub framebuffer: Framebuffer,
+pub struct Display {
+    uc8151: Uc8151,
+    framebuffer: Framebuffer,
 }
 
-impl<'a> Display<'a> {
+impl Display {
+    /// Initialize display from Uc8151.
+    pub async fn new(mut uc8151: Uc8151) -> Self {
+        uc8151.init().await;
+        Self {
+            framebuffer: Framebuffer::default(),
+            uc8151,
+        }
+    }
+
     /// Write current framebuffer to display and refresh
     pub async fn push_to_display(&mut self) {
         self.uc8151.update(&self.framebuffer.bits).await;
@@ -61,7 +68,7 @@ impl<'a> Display<'a> {
     }
 }
 
-impl<'a> DrawTarget for Display<'a> {
+impl DrawTarget for Display {
     type Color = BinaryColor;
     type Error = core::convert::Infallible;
     // adapted from https://github.com/9names/uc8151-rs
@@ -82,7 +89,7 @@ impl<'a> DrawTarget for Display<'a> {
         Ok(())
     }
 }
-impl<'a> OriginDimensions for Display<'a> {
+impl OriginDimensions for Display {
     fn size(&self) -> Size {
         Size::new(Framebuffer::WIDTH as u32, Framebuffer::HEIGHT as u32)
     }

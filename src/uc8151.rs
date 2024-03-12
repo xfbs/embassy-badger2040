@@ -1,3 +1,5 @@
+#![allow(non_snake_case, non_camel_case_types)]
+
 use bitflags::bitflags;
 use embassy_rp::{
     gpio::{Input, Level, Output, Pull},
@@ -5,26 +7,14 @@ use embassy_rp::{
     spi::{self, Blocking, Spi},
 };
 use embassy_time::Timer;
-use embedded_graphics::{
-    draw_target::DrawTarget,
-    geometry::{Dimensions, OriginDimensions, Size},
-    pixelcolor::BinaryColor,
-    Pixel,
-};
 
-pub struct Uc8151<'a> {
-    spi: Spi<'a, SPI0, Blocking>,
-    busy: Input<'a>,
-    chip_select: Output<'a>,
-    dc: Output<'a>,
-    reset: Output<'a>,
+pub struct Uc8151 {
+    spi: Spi<'static, SPI0, Blocking>,
+    busy: Input<'static>,
+    chip_select: Output<'static>,
+    dc: Output<'static>,
+    reset: Output<'static>,
 }
-
-// fixme: u32 but iterator for drawing is i32..
-/// Screen pixel width
-pub const WIDTH: i32 = 296;
-/// Screen pixel height
-pub const HEIGHT: i32 = 128;
 
 pub enum Register {
     PSR = 0x00,
@@ -188,7 +178,7 @@ bitflags! {
     }
 }
 
-impl<'a> Uc8151<'a> {
+impl Uc8151 {
     pub fn new(
         spi: SPI0,
         cs: PIN_17,

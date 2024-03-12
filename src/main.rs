@@ -5,14 +5,12 @@
 #![no_std]
 #![no_main]
 
-use embassy_badger2040::{Buttons, Display, Framebuffer, Uc8151};
+use embassy_badger2040::Display;
 use embassy_executor::Spawner;
-use embassy_futures::select::select;
 use embassy_rp::{
     bind_interrupts,
-    gpio::{Input, Level, Output, Pull},
+    gpio::Output,
     peripherals::USB,
-    spi::{self, Spi},
     usb::{Driver, InterruptHandler},
 };
 use embassy_time::Timer;
@@ -44,8 +42,11 @@ async fn logger_task(driver: Driver<'static, USB>) {
 #[embassy_executor::task]
 async fn blink_task(mut led: Output<'static>) {
     loop {
+        info!("LED OFF");
         led.set_low();
         Timer::after_secs(1).await;
+
+        info!("LED ON");
         led.set_high();
         Timer::after_secs(1).await;
     }
@@ -53,34 +54,16 @@ async fn blink_task(mut led: Output<'static>) {
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
+    let p = embassy_badger2040::init(Default::default());
     let driver = Driver::new(p.USB, Irqs);
     spawner.spawn(logger_task(driver)).unwrap();
+    spawner.spawn(blink_task(p.LED)).unwrap();
 
-    // create buttons
-    let mut buttons = Buttons::new(p.PIN_11, p.PIN_12, p.PIN_13, p.PIN_14, p.PIN_15);
+    info!("Initialized");
 
-    let pin_user = p.PIN_23;
-    let pin_vbus_detect = p.PIN_24;
-    let pin_led = p.PIN_25;
-    let pin_battery = p.PIN_29;
-    let pin_enable_3v3 = p.PIN_10;
-
-    let mut led = Output::new(pin_led, Level::Low);
-    spawner.spawn(blink_task(led)).unwrap();
-
-    // E-INK device init
-    let mut uc8151 = Uc8151::new(
-        p.SPI0, p.PIN_17, p.PIN_18, p.PIN_19, p.PIN_16, p.PIN_20, p.PIN_21, p.PIN_26,
-    );
-
-    uc8151.init().await;
-    uc8151.update(&[0; (128 * 296) / 8]).await;
     // setup display (device + framebuffer)
-    let mut display = Display {
-        framebuffer: Default::default(),
-        uc8151,
-    };
+    let mut display = Display::new(p.UC8151).await;
+    display.push_to_display().await;
 
     // Create text
     let text = "Hi! I'm Aron.\nDon't talk to\nme about\nEmbedded Rust.";
@@ -105,12 +88,14 @@ async fn main(spawner: Spawner) {
                                           // push framebuffer to display
     display.push_to_display().await;
 
-    log::info!("Entering loop");
+    info!("Entering loop");
 
+    // E-INK device init
+    let mut button_a = p.BUTTON_A;
     let mut counter = 0;
     loop {
-        buttons.a.wait_for_rising_edge().await;
+        button_a.wait_for_rising_edge().await;
         counter += 1;
-        log::info!("Tick {}", counter);
+        info!("Tick {}", counter);
     }
 }
