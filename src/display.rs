@@ -13,10 +13,14 @@ pub struct Framebuffer {
 }
 
 impl Framebuffer {
-    const HEIGHT: usize = 128;
-    const WIDTH: usize = 297;
+    pub const HEIGHT: usize = 128;
+    pub const WIDTH: usize = 297;
 
-    pub fn write(&mut self, x: usize, y: usize, value: bool) {}
+    pub fn write(&mut self, x: usize, y: usize, value: bool) {
+        let position = y + (x * (Framebuffer::HEIGHT));
+        log::info!("X: {x} Y: {y} Len: {} Pos: {position}",self.bits.len());
+        self.bits.set(position, value);
+    }
 
     pub fn real(&self, x: usize, y: usize) -> Option<bool> {
         None
@@ -30,6 +34,12 @@ pub struct Display<'a> {
     pub framebuffer: Framebuffer,
 }
 
+
+impl<'a> Display<'a> {
+    pub async fn push_to_display(&mut self) {
+        self.uc8151.update(self.framebuffer.bits.as_raw_slice()).await;
+    }
+}
 
 impl<'a> DrawTarget for Display<'a> {
     type Color = BinaryColor;

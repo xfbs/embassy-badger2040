@@ -5,7 +5,7 @@
 #![no_std]
 #![no_main]
 
-use embassy_badger2040::{Buttons, Uc8151};
+use embassy_badger2040::{Buttons, Display, Framebuffer, Uc8151};
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_rp::{
@@ -18,6 +18,7 @@ use embassy_rp::{
 use embassy_time::Timer;
 use embedded_graphics::{geometry::{Point, Size}, mono_font::{ascii::FONT_9X18_BOLD, MonoTextStyle}, pixelcolor::BinaryColor, primitives::{Primitive, PrimitiveStyle, Rectangle}, Drawable};
 use embedded_text::{alignment::HorizontalAlignment, style::{HeightMode, TextBoxStyleBuilder}, TextBox};
+use log::info;
 use uc8151::WIDTH;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -69,7 +70,24 @@ async fn main(spawner: Spawner) {
     uc8151.init().await;
     uc8151.update(&[0; (128 * 296) / 8]).await;
 
-    log::info!("Printing to display when pressed");
+    let mut display = Display {
+        framebuffer: Default::default(),
+        uc8151,
+    };
+
+    log::info!("Printing test pixels to display when pressed");
+
+    buttons.a.wait_for_rising_edge().await;
+
+    const pixel_coords: [[usize;2];3] =[[1,1],[1,Framebuffer::HEIGHT / 2],[Framebuffer::WIDTH / 2,1]];//,[Framebuffer::WIDTH, Framebuffer::HEIGHT]]; 
+    for coord in pixel_coords {
+        log::info!("Drawing coords at {} {}",coord[0], coord[1]);
+        Timer::after_secs(1).await;
+        display.framebuffer.write(coord[0], coord[1], true);
+    }
+    display.push_to_display().await;
+
+    log::info!("Printing graphics if pressed again");
 
     buttons.a.wait_for_rising_edge().await;
 
@@ -86,13 +104,14 @@ async fn main(spawner: Spawner) {
     let bounds = Rectangle::new(Point::new(157, 10), Size::new(WIDTH - 157, 0));
     bounds
         .into_styled(PrimitiveStyle::with_fill(BinaryColor::On))
-        .draw(&mut uc8151)
+        .draw(&mut display)
         .unwrap();
     // Create the text box and apply styling options.
     let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
     // Draw the text box.
-    text_box.draw(&mut uc8151).unwrap();
-    uc8151.draw_updates().await;
+    text_box.draw(&mut display).unwrap();
+    // uc8151.draw_updates().await;
+    display.push_to_display().await;
 
     log::info!("Entering loop");
 
@@ -103,7 +122,7 @@ async fn main(spawner: Spawner) {
     loop {
         //join(buttons.a.wait_for_rising_edge(), buttoms.b.wait_for_rising_edge()).await;
         buttons.a.wait_for_rising_edge().await;
-        uc8151.update(&[255; (128 * 296) / 8]).await;
+        // uc8151.update(&[255; (128 * 296) / 8]).await;
         counter += 1;
         log::info!("Tick {}", counter);
         //Timer::after_secs(1).await;

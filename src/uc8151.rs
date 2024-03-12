@@ -18,7 +18,7 @@ pub struct Uc8151<'a> {
     chip_select: Output<'a>,
     dc: Output<'a>,
     reset: Output<'a>,
-    frame_buffer: [u8; (128 * 296) / 8],
+    frame_buffer: [u8; (HEIGHT * WIDTH) as  usize / 8],
 }
 
 // fixme: u32 but iterator for drawing is i32..
