@@ -63,13 +63,14 @@ async fn main(spawner: Spawner) {
     let mut reset = Output::new(p.PIN_21, Level::High);
     */
 
+    // E-INK device init
     let mut uc8151 = Uc8151::new(
         p.SPI0, p.PIN_17, p.PIN_18, p.PIN_19, p.PIN_16, p.PIN_20, p.PIN_21, p.PIN_26,
     );
 
     uc8151.init().await;
     uc8151.update(&[0; (128 * 296) / 8]).await;
-
+    // setup display (device + framebuffer)
     let mut display = Display {
         framebuffer: Default::default(),
         uc8151,
@@ -90,6 +91,7 @@ async fn main(spawner: Spawner) {
     }
     led.set_low();
 
+    // Create text
     let text = "Hi! I'm Aron.\nDon't talk to\nme about\nEmbedded Rust.";
     // Note we're setting the Text color to `Off`. The driver is set up to treat Off as Black so that BMPs work as expected.
     let character_style = MonoTextStyle::new(&FONT_9X18_BOLD, BinaryColor::Off);
@@ -103,12 +105,13 @@ async fn main(spawner: Spawner) {
     let bounds = Rectangle::new(Point::new(157, 10), Size::new(WIDTH - 157, 0));
     bounds
         .into_styled(PrimitiveStyle::with_fill(BinaryColor::On))
-        .draw(&mut display)
+        .draw(&mut display) // draw to framebuffer
         .unwrap();
     // Create the text box and apply styling options.
     let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
     // Draw the text box.
-    text_box.draw(&mut display).unwrap();
+    text_box.draw(&mut display).unwrap(); // draw to framebuffer
+    // push framebuffer to display
     display.push_to_display().await;
 
     log::info!("Entering loop");
