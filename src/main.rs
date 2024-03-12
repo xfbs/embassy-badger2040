@@ -7,7 +7,7 @@
 
 use embassy_badger2040::{Buttons, Display, Framebuffer, Uc8151};
 use embassy_executor::Spawner;
-use embassy_futures::join::join;
+use embassy_futures::select::select;
 use embassy_rp::{
     bind_interrupts,
     gpio::{Input, Level, Output, Pull},
@@ -75,9 +75,20 @@ async fn main(spawner: Spawner) {
         uc8151,
     };
 
-    log::info!("Printing graphics if pressed again");
+    // flash LED + log output while waiting for button A press
+    let mut light = false;
+    let mut led = Output::new(pin_led, Level::Low);
+    while buttons.a.is_low() {
+        log::info!("Printing graphics if pressed again");
+        match light {
+            true => led.set_high(),
+            false => led.set_low(),
+        }
+        light = !light;
 
-    buttons.a.wait_for_rising_edge().await;
+        select(buttons.a.wait_for_rising_edge(),Timer::after_secs(1)).await;
+    }
+    led.set_low();
 
     let text = "Hi! I'm Aron.\nDon't talk to\nme about\nEmbedded Rust.";
     // Note we're setting the Text color to `Off`. The driver is set up to treat Off as Black so that BMPs work as expected.
@@ -85,7 +96,7 @@ async fn main(spawner: Spawner) {
     let textbox_style = TextBoxStyleBuilder::new()
         .height_mode(HeightMode::FitToText)
         .alignment(HorizontalAlignment::Center)
-        //.vertical_alignment(embedded_text::alignment::VerticalAlignment::Top)
+        .vertical_alignment(embedded_text::alignment::VerticalAlignment::Middle)
         .paragraph_spacing(6)
         .build();
     // Bounding box for our text. Fill it with the opposite color so we can read the text.
@@ -98,21 +109,18 @@ async fn main(spawner: Spawner) {
     let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
     // Draw the text box.
     text_box.draw(&mut display).unwrap();
-    // uc8151.draw_updates().await;
     display.push_to_display().await;
 
     log::info!("Entering loop");
 
-    // Configure CS
-    //let mut cs = Output::new(touch_cs, Level::Low);
-
     let mut counter = 0;
     loop {
-        //join(buttons.a.wait_for_rising_edge(), buttoms.b.wait_for_rising_edge()).await;
         buttons.a.wait_for_rising_edge().await;
-        // uc8151.update(&[255; (128 * 296) / 8]).await;
         counter += 1;
         log::info!("Tick {}", counter);
-        //Timer::after_secs(1).await;
+        match led.is_set_high() {
+            false => led.set_high(),
+            true => led.set_low(),
+        }
     }
 }
