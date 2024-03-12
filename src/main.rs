@@ -75,18 +75,6 @@ async fn main(spawner: Spawner) {
         uc8151,
     };
 
-    log::info!("Printing test pixels to display when pressed");
-
-    buttons.a.wait_for_rising_edge().await;
-
-    const pixel_coords: [[usize;2];3] =[[1,1],[1,Framebuffer::HEIGHT / 2],[Framebuffer::WIDTH / 2,1]];//,[Framebuffer::WIDTH, Framebuffer::HEIGHT]]; 
-    for coord in pixel_coords {
-        log::info!("Drawing coords at {} {}",coord[0], coord[1]);
-        Timer::after_secs(1).await;
-        display.framebuffer.write(coord[0], coord[1], true);
-    }
-    display.push_to_display().await;
-
     log::info!("Printing graphics if pressed again");
 
     buttons.a.wait_for_rising_edge().await;

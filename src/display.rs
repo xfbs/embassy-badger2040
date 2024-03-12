@@ -1,5 +1,4 @@
 use crate::Uc8151;
-use bitvec::array::BitArray;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{Dimensions, OriginDimensions, Size},
@@ -7,9 +6,14 @@ use embedded_graphics::{
     Pixel,
 };
 
-#[derive(Default)]
+impl Default for Framebuffer {
+    fn default() -> Self {
+        Self { bits: [0;(Self::HEIGHT * Self::WIDTH) as  usize / 8] }
+    }
+}
+
 pub struct Framebuffer {
-    bits: BitArray<[u8; (Self::HEIGHT * Self::WIDTH) / 8]>,
+    bits: [u8; (Self::HEIGHT * Self::WIDTH) as  usize / 8],
 }
 
 impl Framebuffer {
@@ -17,9 +21,18 @@ impl Framebuffer {
     pub const WIDTH: usize = 297;
 
     pub fn write(&mut self, x: usize, y: usize, value: bool) {
-        let position = y + (x * (Framebuffer::HEIGHT));
-        log::info!("X: {x} Y: {y} Len: {} Pos: {position}",self.bits.len());
-        self.bits.set(position, value);
+        if x >= Framebuffer::WIDTH || y >= Framebuffer::HEIGHT {
+            // TODO: error out
+            log::error!("Ignoring out of bounds pixel draw at x: {x} y:{y}");
+            return;
+        }
+
+        let address = ((y / 8) + (x * (Self::HEIGHT / 8))) as usize;
+
+        let o: u8 = 7 - (y as u8 & 0b111); // bit offset within byte
+        let m: u8 = !(1 << o); // bit mask for byte
+        let b: u8 = ((value) as u8) << o; // bit value shifted to position
+        self.bits[address] = (self.bits[address] & m) | b;
     }
 
     pub fn real(&self, x: usize, y: usize) -> Option<bool> {
@@ -36,8 +49,14 @@ pub struct Display<'a> {
 
 
 impl<'a> Display<'a> {
+    /// Write current framebuffer to display and refresh
     pub async fn push_to_display(&mut self) {
-        self.uc8151.update(self.framebuffer.bits.as_raw_slice()).await;
+        self.uc8151.update(&self.framebuffer.bits).await;
+    }
+
+    /// Clear framebuffer - call [Self::push_to_display] to clear display.
+    pub async fn clear_buffer(&mut self) {
+        self.framebuffer.bits.fill(0);
     }
 }
 
@@ -55,10 +74,6 @@ impl<'a> DrawTarget for Display<'a> {
             .into_iter()
             .filter(|Pixel(pos, _color)| bb.contains(*pos))
             .for_each(|Pixel(pos, color)| {
-                if pos.x >= (Framebuffer::WIDTH as i32) || pos.y >= (Framebuffer::HEIGHT as i32) {
-                    // TODO: error out
-                    return;
-                }
                 self.framebuffer.write(pos.x as _, pos.y as _, color == BinaryColor::Off);
             });
 
