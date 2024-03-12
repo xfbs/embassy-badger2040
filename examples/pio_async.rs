@@ -6,7 +6,9 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::PIO0;
-use embassy_rp::pio::{Common, Config, InterruptHandler, Irq, Pio, PioPin, ShiftDirection, StateMachine};
+use embassy_rp::pio::{
+    Common, Config, InterruptHandler, Irq, Pio, PioPin, ShiftDirection, StateMachine,
+};
 use fixed::traits::ToFixed;
 use fixed_macro::types::U56F8;
 use {defmt_rtt as _, panic_probe as _};
@@ -15,7 +17,11 @@ bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => InterruptHandler<PIO0>;
 });
 
-fn setup_pio_task_sm0<'a>(pio: &mut Common<'a, PIO0>, sm: &mut StateMachine<'a, PIO0, 0>, pin: impl PioPin) {
+fn setup_pio_task_sm0<'a>(
+    pio: &mut Common<'a, PIO0>,
+    sm: &mut StateMachine<'a, PIO0, 0>,
+    pin: impl PioPin,
+) {
     // Setup sm0
 
     // Send data serially to pin

@@ -106,7 +106,11 @@ async fn listen_task(stack: &'static Stack<Device<'static>>, id: u8, port: u16) 
             warn!("accept error: {:?}", e);
             continue;
         }
-        info!("SOCKET {}: Received connection from {:?}", id, socket.remote_endpoint());
+        info!(
+            "SOCKET {}: Received connection from {:?}",
+            id,
+            socket.remote_endpoint()
+        );
 
         loop {
             let n = match socket.read(&mut buf).await {
@@ -120,7 +124,11 @@ async fn listen_task(stack: &'static Stack<Device<'static>>, id: u8, port: u16) 
                     break;
                 }
             };
-            info!("SOCKET {}: rxd {}", id, core::str::from_utf8(&buf[..n]).unwrap());
+            info!(
+                "SOCKET {}: rxd {}",
+                id,
+                core::str::from_utf8(&buf[..n]).unwrap()
+            );
 
             if let Err(e) = socket.write_all(&buf[..n]).await {
                 warn!("write error: {:?}", e);

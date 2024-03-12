@@ -3,7 +3,7 @@ edition = "2021"
 name = "embassy-badger2040"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
-
+default-run = "embassy-badger2040"
 
 [dependencies]
 embassy-embedded-hal = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", features = ["defmt"] }

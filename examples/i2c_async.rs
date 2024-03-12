@@ -89,9 +89,13 @@ async fn main(_spawner: Spawner) {
     loop {
         let mut portb = [0];
 
-        i2c.write_read(mcp23017::ADDR, &[GPIOB], &mut portb).await.unwrap();
+        i2c.write_read(mcp23017::ADDR, &[GPIOB], &mut portb)
+            .await
+            .unwrap();
         info!("portb = {:02x}", portb[0]);
-        i2c.write(mcp23017::ADDR, &[GPIOA, val | portb[0]]).await.unwrap();
+        i2c.write(mcp23017::ADDR, &[GPIOA, val | portb[0]])
+            .await
+            .unwrap();
         val = val.rotate_left(1);
 
         // get a register dump

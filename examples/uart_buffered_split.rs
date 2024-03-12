@@ -30,7 +30,15 @@ async fn main(spawner: Spawner) {
     let tx_buf = &mut TX_BUF.init([0; 16])[..];
     static RX_BUF: StaticCell<[u8; 16]> = StaticCell::new();
     let rx_buf = &mut RX_BUF.init([0; 16])[..];
-    let uart = BufferedUart::new(uart, Irqs, tx_pin, rx_pin, tx_buf, rx_buf, Config::default());
+    let uart = BufferedUart::new(
+        uart,
+        Irqs,
+        tx_pin,
+        rx_pin,
+        tx_buf,
+        rx_buf,
+        Config::default(),
+    );
     let (rx, mut tx) = uart.split();
 
     unwrap!(spawner.spawn(reader(rx)));
@@ -38,8 +46,8 @@ async fn main(spawner: Spawner) {
     info!("Writing...");
     loop {
         let data = [
-            1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-            29, 30, 31,
+            1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            24, 25, 26, 27, 28, 29, 30, 31,
         ];
         info!("TX {:?}", data);
         tx.write_all(&data).await.unwrap();

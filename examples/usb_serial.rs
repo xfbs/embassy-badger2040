@@ -1,6 +1,6 @@
 //! This example shows how to use USB (Universal Serial Bus) in the RP2040 chip.
 //!
-//! This creates a USB MIDI device that echoes MIDI messages back to the host.
+//! This creates a USB serial port that echos.
 
 #![no_std]
 #![no_main]
@@ -11,7 +11,7 @@ use embassy_futures::join::join;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, Instance, InterruptHandler};
-use embassy_usb::class::midi::MidiClass;
+use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
 use embassy_usb::driver::EndpointError;
 use embassy_usb::{Builder, Config};
 use {defmt_rtt as _, panic_probe as _};
@@ -22,7 +22,7 @@ bind_interrupts!(struct Irqs {
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    info!("Hello world!");
+    info!("Hello there!");
 
     let p = embassy_rp::init(Default::default());
 
@@ -32,7 +32,7 @@ async fn main(_spawner: Spawner) {
     // Create embassy-usb Config
     let mut config = Config::new(0xc0de, 0xcafe);
     config.manufacturer = Some("Embassy");
-    config.product = Some("USB-MIDI example");
+    config.product = Some("USB-serial example");
     config.serial_number = Some("12345678");
     config.max_power = 100;
     config.max_packet_size_0 = 64;
@@ -51,6 +51,8 @@ async fn main(_spawner: Spawner) {
     let mut bos_descriptor = [0; 256];
     let mut control_buf = [0; 64];
 
+    let mut state = State::new();
+
     let mut builder = Builder::new(
         driver,
         config,
@@ -62,10 +64,7 @@ async fn main(_spawner: Spawner) {
     );
 
     // Create classes on the builder.
-    let mut class = MidiClass::new(&mut builder, 1, 1, 64);
-
-    // The `MidiClass` can be split into `Sender` and `Receiver`, to be used in separate tasks.
-    // let (sender, receiver) = class.split();
+    let mut class = CdcAcmClass::new(&mut builder, &mut state, 64);
 
     // Build the builder.
     let mut usb = builder.build();
@@ -73,19 +72,19 @@ async fn main(_spawner: Spawner) {
     // Run the USB device.
     let usb_fut = usb.run();
 
-    // Use the Midi class!
-    let midi_fut = async {
+    // Do stuff with the class!
+    let echo_fut = async {
         loop {
             class.wait_connection().await;
             info!("Connected");
-            let _ = midi_echo(&mut class).await;
+            let _ = echo(&mut class).await;
             info!("Disconnected");
         }
     };
 
     // Run everything concurrently.
     // If we had made everything `'static` above instead, we could do this using separate tasks instead.
-    join(usb_fut, midi_fut).await;
+    join(usb_fut, echo_fut).await;
 }
 
 struct Disconnected {}
@@ -99,7 +98,9 @@ impl From<EndpointError> for Disconnected {
     }
 }
 
-async fn midi_echo<'d, T: Instance + 'd>(class: &mut MidiClass<'d, Driver<'d, T>>) -> Result<(), Disconnected> {
+async fn echo<'d, T: Instance + 'd>(
+    class: &mut CdcAcmClass<'d, Driver<'d, T>>,
+) -> Result<(), Disconnected> {
     let mut buf = [0; 64];
     loop {
         let n = class.read_packet(&mut buf).await?;

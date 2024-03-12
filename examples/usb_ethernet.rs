@@ -93,7 +93,8 @@ async fn main(spawner: Spawner) {
     unwrap!(spawner.spawn(usb_task(usb)));
 
     static NET_STATE: StaticCell<NetState<MTU, 4, 4>> = StaticCell::new();
-    let (runner, device) = class.into_embassy_net_device::<MTU, 4, 4>(NET_STATE.init(NetState::new()), our_mac_addr);
+    let (runner, device) =
+        class.into_embassy_net_device::<MTU, 4, 4>(NET_STATE.init(NetState::new()), our_mac_addr);
     unwrap!(spawner.spawn(usb_ncm_task(runner)));
 
     let config = embassy_net::Config::dhcpv4(Default::default());

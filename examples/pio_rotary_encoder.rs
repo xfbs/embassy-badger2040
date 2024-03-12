@@ -9,7 +9,9 @@ use embassy_rp::gpio::Pull;
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::{bind_interrupts, pio};
 use fixed::traits::ToFixed;
-use pio::{Common, Config, FifoJoin, Instance, InterruptHandler, Pio, PioPin, ShiftDirection, StateMachine};
+use pio::{
+    Common, Config, FifoJoin, Instance, InterruptHandler, Pio, PioPin, ShiftDirection, StateMachine,
+};
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
@@ -65,7 +67,9 @@ pub enum Direction {
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
-    let Pio { mut common, sm0, .. } = Pio::new(p.PIO0, Irqs);
+    let Pio {
+        mut common, sm0, ..
+    } = Pio::new(p.PIO0, Irqs);
 
     let mut encoder = PioEncoder::new(&mut common, sm0, p.PIN_4, p.PIN_5);
 

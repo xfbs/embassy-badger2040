@@ -174,7 +174,9 @@ impl Handler for MyDeviceHandler {
     fn configured(&mut self, configured: bool) {
         self.configured.store(configured, Ordering::Relaxed);
         if configured {
-            info!("Device configured, it may now draw up to the configured current limit from Vbus.")
+            info!(
+                "Device configured, it may now draw up to the configured current limit from Vbus."
+            )
         } else {
             info!("Device is no longer configured, the Vbus current limit is 100mA.");
         }

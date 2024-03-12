@@ -1,6 +1,6 @@
-//! This example shows how to use USB (Universal Serial Bus) in the RP2040 chip.
+//! This example shows how to use USB (Universal Serial Bus) in the RP2040 chip as well as how to create multiple usb classes for one device
 //!
-//! This creates a USB serial port that echos.
+//! This creates a USB serial port that echos. It will also print out logging information on a separate serial device
 
 #![no_std]
 #![no_main]
@@ -52,6 +52,7 @@ async fn main(_spawner: Spawner) {
     let mut control_buf = [0; 64];
 
     let mut state = State::new();
+    let mut logger_state = State::new();
 
     let mut builder = Builder::new(
         driver,
@@ -66,6 +67,13 @@ async fn main(_spawner: Spawner) {
     // Create classes on the builder.
     let mut class = CdcAcmClass::new(&mut builder, &mut state, 64);
 
+    // Create a class for the logger
+    let logger_class = CdcAcmClass::new(&mut builder, &mut logger_state, 64);
+
+    // Creates the logger and returns the logger future
+    // Note: You'll need to use log::info! afterwards instead of info! for this to work (this also applies to all the other log::* macros)
+    let log_fut = embassy_usb_logger::with_class!(1024, log::LevelFilter::Info, logger_class);
+
     // Build the builder.
     let mut usb = builder.build();
 
@@ -76,15 +84,15 @@ async fn main(_spawner: Spawner) {
     let echo_fut = async {
         loop {
             class.wait_connection().await;
-            info!("Connected");
+            log::info!("Connected");
             let _ = echo(&mut class).await;
-            info!("Disconnected");
+            log::info!("Disconnected");
         }
     };
 
     // Run everything concurrently.
     // If we had made everything `'static` above instead, we could do this using separate tasks instead.
-    join(usb_fut, echo_fut).await;
+    join(usb_fut, join(echo_fut, log_fut)).await;
 }
 
 struct Disconnected {}
@@ -98,7 +106,9 @@ impl From<EndpointError> for Disconnected {
     }
 }
 
-async fn echo<'d, T: Instance + 'd>(class: &mut CdcAcmClass<'d, Driver<'d, T>>) -> Result<(), Disconnected> {
+async fn echo<'d, T: Instance + 'd>(
+    class: &mut CdcAcmClass<'d, Driver<'d, T>>,
+) -> Result<(), Disconnected> {
     let mut buf = [0; 64];
     loop {
         let n = class.read_packet(&mut buf).await?;

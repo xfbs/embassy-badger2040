@@ -8,12 +8,14 @@ use embedded_graphics::{
 
 impl Default for Framebuffer {
     fn default() -> Self {
-        Self { bits: [0;(Self::HEIGHT * Self::WIDTH) as  usize / 8] }
+        Self {
+            bits: [0; (Self::HEIGHT * Self::WIDTH) as usize / 8],
+        }
     }
 }
 
 pub struct Framebuffer {
-    bits: [u8; (Self::HEIGHT * Self::WIDTH) as  usize / 8],
+    bits: [u8; (Self::HEIGHT * Self::WIDTH) as usize / 8],
 }
 
 impl Framebuffer {
@@ -47,7 +49,6 @@ pub struct Display<'a> {
     pub framebuffer: Framebuffer,
 }
 
-
 impl<'a> Display<'a> {
     /// Write current framebuffer to display and refresh
     pub async fn push_to_display(&mut self) {
@@ -74,7 +75,8 @@ impl<'a> DrawTarget for Display<'a> {
             .into_iter()
             .filter(|Pixel(pos, _color)| bb.contains(*pos))
             .for_each(|Pixel(pos, color)| {
-                self.framebuffer.write(pos.x as _, pos.y as _, color == BinaryColor::Off);
+                self.framebuffer
+                    .write(pos.x as _, pos.y as _, color == BinaryColor::Off);
             });
 
         Ok(())

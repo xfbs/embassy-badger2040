@@ -16,8 +16,18 @@ use embassy_rp::{
     usb::{Driver, InterruptHandler},
 };
 use embassy_time::Timer;
-use embedded_graphics::{geometry::{Point, Size}, mono_font::{ascii::FONT_9X18_BOLD, MonoTextStyle}, pixelcolor::BinaryColor, primitives::{Primitive, PrimitiveStyle, Rectangle}, Drawable};
-use embedded_text::{alignment::HorizontalAlignment, style::{HeightMode, TextBoxStyleBuilder}, TextBox};
+use embedded_graphics::{
+    geometry::{Point, Size},
+    mono_font::{ascii::FONT_9X18_BOLD, MonoTextStyle},
+    pixelcolor::BinaryColor,
+    primitives::{Primitive, PrimitiveStyle, Rectangle},
+    Drawable,
+};
+use embedded_text::{
+    alignment::HorizontalAlignment,
+    style::{HeightMode, TextBoxStyleBuilder},
+    TextBox,
+};
 use log::info;
 use uc8151::WIDTH;
 use {defmt_rtt as _, panic_probe as _};
@@ -31,6 +41,16 @@ async fn logger_task(driver: Driver<'static, USB>) {
     embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver);
 }
 
+#[embassy_executor::task]
+async fn blink_task(mut led: Output<'static>) {
+    loop {
+        led.set_low();
+        Timer::after_secs(1).await;
+        led.set_high();
+        Timer::after_secs(1).await;
+    }
+}
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
@@ -41,27 +61,13 @@ async fn main(spawner: Spawner) {
     let mut buttons = Buttons::new(p.PIN_11, p.PIN_12, p.PIN_13, p.PIN_14, p.PIN_15);
 
     let pin_user = p.PIN_23;
-    //let pin_cs          = p.PIN_17;
-    //let pin_clk         = p.PIN_18;
-    //let pin_mosi        = p.PIN_19;
-    //let pin_dc          = p.PIN_20;
-    //let pin_reset       = p.PIN_21;
-    //let pin_busy        = p.PIN_26;
     let pin_vbus_detect = p.PIN_24;
     let pin_led = p.PIN_25;
     let pin_battery = p.PIN_29;
     let pin_enable_3v3 = p.PIN_10;
 
-    // create SPI
-    /*
-    let mut config = spi::Config::default();
-    config.frequency = 12_000_000;
-    let mut spi = Spi::new_blocking(p.SPI0, p.PIN_18, p.PIN_19, p.PIN_16, config);
-    let mut busy = Input::new(p.PIN_26, Pull::Up);
-    let mut cs = Output::new(p.PIN_17, Level::High);
-    let mut dc = Output::new(p.PIN_20, Level::Low);
-    let mut reset = Output::new(p.PIN_21, Level::High);
-    */
+    let mut led = Output::new(pin_led, Level::Low);
+    spawner.spawn(blink_task(led)).unwrap();
 
     // E-INK device init
     let mut uc8151 = Uc8151::new(
@@ -75,21 +81,6 @@ async fn main(spawner: Spawner) {
         framebuffer: Default::default(),
         uc8151,
     };
-
-    // flash LED + log output while waiting for button A press
-    let mut light = false;
-    let mut led = Output::new(pin_led, Level::Low);
-    while buttons.a.is_low() {
-        log::info!("Printing graphics if pressed again");
-        match light {
-            true => led.set_high(),
-            false => led.set_low(),
-        }
-        light = !light;
-
-        select(buttons.a.wait_for_rising_edge(),Timer::after_secs(1)).await;
-    }
-    led.set_low();
 
     // Create text
     let text = "Hi! I'm Aron.\nDon't talk to\nme about\nEmbedded Rust.";
@@ -111,7 +102,7 @@ async fn main(spawner: Spawner) {
     let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
     // Draw the text box.
     text_box.draw(&mut display).unwrap(); // draw to framebuffer
-    // push framebuffer to display
+                                          // push framebuffer to display
     display.push_to_display().await;
 
     log::info!("Entering loop");
@@ -121,9 +112,5 @@ async fn main(spawner: Spawner) {
         buttons.a.wait_for_rising_edge().await;
         counter += 1;
         log::info!("Tick {}", counter);
-        match led.is_set_high() {
-            false => led.set_high(),
-            true => led.set_low(),
-        }
     }
 }

@@ -9,22 +9,18 @@ use core::borrow::BorrowMut;
 use core::cell::RefCell;
 
 use cortex_m::prelude::_embedded_hal_blocking_delay_DelayMs;
-use embassy_embedded_hal::shared_bus::blocking::spi::{SpiDeviceWithConfig};
+use embassy_embedded_hal::shared_bus::blocking::spi::SpiDeviceWithConfig;
 use embassy_executor::Spawner;
 use embassy_futures::select::{self, select};
-use embassy_rp::{bind_interrupts, Peripheral};
 use embassy_rp::gpio::{Input, Level, Output, Pull};
 use embassy_rp::peripherals::USB;
-use embassy_rp::usb::{Driver, InterruptHandler};
-use embassy_time::{Delay, Timer};
-use embedded_hal_1::digital::OutputPin;
-use fugit::RateExtU32;
-use static_cell::StaticCell;
-use {defmt_rtt as _, panic_probe as _};
 use embassy_rp::spi;
 use embassy_rp::spi::{Blocking, Spi};
+use embassy_rp::usb::{Driver, InterruptHandler};
+use embassy_rp::{bind_interrupts, Peripheral};
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::blocking_mutex::{Mutex, NoopMutex};
+use embassy_time::{Delay, Timer};
 use embedded_graphics::{
     image::Image,
     mono_font::{ascii::*, MonoTextStyle},
@@ -32,12 +28,16 @@ use embedded_graphics::{
     prelude::*,
     primitives::{PrimitiveStyle, Rectangle},
 };
+use embedded_hal_1::digital::OutputPin;
 use embedded_text::{
     alignment::HorizontalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
+use fugit::RateExtU32;
+use static_cell::StaticCell;
 use uc8151::WIDTH;
+use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => InterruptHandler<USB>;
@@ -58,7 +58,7 @@ async fn main(spawner: Spawner) {
 
     log::info!("Press button 1 to continue");
 
-    let mut button = Input::new(p.PIN_12,Pull::Down);
+    let mut button = Input::new(p.PIN_12, Pull::Down);
 
     while button.is_low() {
         log::info!("Press button A to init..");
@@ -92,7 +92,6 @@ async fn main(spawner: Spawner) {
 
     // The single-cycle I/O block controls our GPIO pins
     // let sio = hal::Sio::new(pac.SIO);
-
 
     // // Set the pins up according to their function on this particular board
     // let pins = pimoroni_badger2040::Pins::new(
@@ -132,7 +131,7 @@ async fn main(spawner: Spawner) {
     // let mut cs = p.PIN_17;//Output::new(p.PIN_17, Level::High);
     // let busy = pins.inky_busy.into_pull_up_input();
     // let reset = pins.inky_res.into_push_pull_output();
-    
+
     let busy = Input::new(p.PIN_26, Pull::Up);
     let reset = Output::new(p.PIN_21, Level::High);
 
@@ -148,25 +147,32 @@ async fn main(spawner: Spawner) {
     display_config.frequency = DISPLAY_FREQ;
     display_config.phase = spi::Phase::CaptureOnSecondTransition;
     display_config.polarity = spi::Polarity::IdleHigh;
-    let spi: Spi<'_, _, Blocking> = Spi::new_blocking(p.SPI0, clk, p.PIN_19, unsafe {p.PIN_16.clone_unchecked()}, display_config.clone());
+    let spi: Spi<'_, _, Blocking> = Spi::new_blocking(
+        p.SPI0,
+        clk,
+        p.PIN_19,
+        unsafe { p.PIN_16.clone_unchecked() },
+        display_config.clone(),
+    );
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(spi));
     // let display_spi = SpiDeviceWithConfig::new(&spi_bus, unsafe {p.PIN_17.clone_unchecked()}, display_config);
-    
-    static SPI_BUS: StaticCell<NoopMutex<RefCell<Spi<'_,embassy_rp::peripherals::SPI0,Blocking>>>> = StaticCell::new();
+
+    static SPI_BUS: StaticCell<
+        NoopMutex<RefCell<Spi<'_, embassy_rp::peripherals::SPI0, Blocking>>>,
+    > = StaticCell::new();
     let spi_bus = SPI_BUS.init(spi_bus);
-    let spi_cs_pin = Output::new(unsafe {p.PIN_17.clone_unchecked()},Level::High);
-    let spi_dev1 = embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(spi_bus, spi_cs_pin);
+    let spi_cs_pin = Output::new(unsafe { p.PIN_17.clone_unchecked() }, Level::High);
+    let spi_dev1 =
+        embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice::new(spi_bus, spi_cs_pin);
 
     // dc.set_high();
     // cs.set_high();
-    
 
     // let mut count_down = timer.count_down();
-    let cs = Output::new(p.PIN_17,Level::High);//Output::new(p.PIN_17, Level::High);
+    let cs = Output::new(p.PIN_17, Level::High); //Output::new(p.PIN_17, Level::High);
     let dc = Output::new(p.PIN_20, Level::Low);
     let mut display = uc8151::Uc8151::new(spi_dev1, cs, dc, busy, reset);
     // display init end
-
 
     log::info!("Finished display setup noodles");
     display.disable();
@@ -176,7 +182,7 @@ async fn main(spawner: Spawner) {
     while display.is_busy() {}
 
     log::info!("Drawing");
-    
+
     // FIXME: is this valid for embassy ?
     // let core = pimoroni_badger2040::hal::pac::CorePeripherals::take().unwrap();
     // fixme: original is clocks.system_clock.freq().to_Hz()
@@ -204,7 +210,7 @@ async fn main(spawner: Spawner) {
     text_box.draw(&mut display).unwrap();
 
     log::info!("Entering tick loop");
-        
+
     let mut counter = 0;
     loop {
         counter += 1;

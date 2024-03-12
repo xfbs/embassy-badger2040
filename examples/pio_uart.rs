@@ -217,7 +217,10 @@ mod uart {
             rx_pin: impl PioPin,
         ) -> PioUart<'a> {
             let Pio {
-                mut common, sm0, sm1, ..
+                mut common,
+                sm0,
+                sm1,
+                ..
             } = Pio::new(pio, Irqs);
 
             let tx = PioUartTx::new(&mut common, sm0, tx_pin, baud);
@@ -237,7 +240,9 @@ mod uart_tx {
 
     use embassy_rp::gpio::Level;
     use embassy_rp::peripherals::PIO0;
-    use embassy_rp::pio::{Common, Config, Direction, FifoJoin, PioPin, ShiftDirection, StateMachine};
+    use embassy_rp::pio::{
+        Common, Config, Direction, FifoJoin, PioPin, ShiftDirection, StateMachine,
+    };
     use embedded_io_async::{ErrorType, Write};
     use fixed::traits::ToFixed;
     use fixed_macro::types::U56F8;
@@ -309,7 +314,9 @@ mod uart_rx {
 
     use embassy_rp::gpio::Level;
     use embassy_rp::peripherals::PIO0;
-    use embassy_rp::pio::{Common, Config, Direction, FifoJoin, PioPin, ShiftDirection, StateMachine};
+    use embassy_rp::pio::{
+        Common, Config, Direction, FifoJoin, PioPin, ShiftDirection, StateMachine,
+    };
     use embedded_io_async::{ErrorType, Read};
     use fixed::traits::ToFixed;
     use fixed_macro::types::U56F8;

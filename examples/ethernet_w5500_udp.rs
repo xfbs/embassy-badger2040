@@ -94,7 +94,13 @@ async fn main(spawner: Spawner) {
     let mut tx_meta = [PacketMetadata::EMPTY; 16];
     let mut buf = [0; 4096];
     loop {
-        let mut socket = UdpSocket::new(stack, &mut rx_meta, &mut rx_buffer, &mut tx_meta, &mut tx_buffer);
+        let mut socket = UdpSocket::new(
+            stack,
+            &mut rx_meta,
+            &mut rx_buffer,
+            &mut tx_meta,
+            &mut tx_buffer,
+        );
         socket.bind(1234).unwrap();
 
         loop {

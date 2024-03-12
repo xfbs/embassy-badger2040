@@ -64,7 +64,8 @@ async fn main(_spawner: Spawner) {
         let mut portb = [0];
 
         i2c.write(mcp23017::ADDR, &[GPIOA, val]).unwrap();
-        i2c.write_read(mcp23017::ADDR, &[GPIOB], &mut portb).unwrap();
+        i2c.write_read(mcp23017::ADDR, &[GPIOB], &mut portb)
+            .unwrap();
 
         info!("portb = {:02x}", portb[0]);
         val = !val;

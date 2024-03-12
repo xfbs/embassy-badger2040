@@ -10,7 +10,8 @@ use embassy_executor::Spawner;
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{
-    Config, Direction, FifoJoin, InterruptHandler, Pio, PioPin, ShiftConfig, ShiftDirection, StateMachine,
+    Config, Direction, FifoJoin, InterruptHandler, Pio, PioPin, ShiftConfig, ShiftDirection,
+    StateMachine,
 };
 use embassy_rp::pwm::{self, Pwm};
 use embassy_rp::{bind_interrupts, into_ref, Peripheral, PeripheralRef};

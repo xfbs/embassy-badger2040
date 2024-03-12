@@ -9,7 +9,9 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::PIO0;
-use embassy_rp::pio::{Common, Config, Direction, Instance, InterruptHandler, Irq, Pio, PioPin, StateMachine};
+use embassy_rp::pio::{
+    Common, Config, Direction, Instance, InterruptHandler, Irq, Pio, PioPin, StateMachine,
+};
 use embassy_time::{with_timeout, Duration, Timer};
 use fixed::traits::ToFixed;
 use fixed::types::extra::U8;
@@ -69,34 +71,43 @@ impl<'d, T: Instance, const SM: usize> PioStepper<'d, T, SM> {
         let clock_divider: FixedU32<U8> = (125_000_000 / (freq * 136)).to_fixed();
         assert!(clock_divider <= 65536, "clkdiv must be <= 65536");
         assert!(clock_divider >= 1, "clkdiv must be >= 1");
-        T::PIO.sm(SM).clkdiv().write(|w| w.0 = clock_divider.to_bits() << 8);
+        T::PIO
+            .sm(SM)
+            .clkdiv()
+            .write(|w| w.0 = clock_divider.to_bits() << 8);
         self.sm.clkdiv_restart();
     }
 
     // Full step, one phase
     pub async fn step(&mut self, steps: i32) {
         if steps > 0 {
-            self.run(steps, 0b1000_0100_0010_0001_1000_0100_0010_0001).await
+            self.run(steps, 0b1000_0100_0010_0001_1000_0100_0010_0001)
+                .await
         } else {
-            self.run(-steps, 0b0001_0010_0100_1000_0001_0010_0100_1000).await
+            self.run(-steps, 0b0001_0010_0100_1000_0001_0010_0100_1000)
+                .await
         }
     }
 
     // Full step, two phase
     pub async fn step2(&mut self, steps: i32) {
         if steps > 0 {
-            self.run(steps, 0b1001_1100_0110_0011_1001_1100_0110_0011).await
+            self.run(steps, 0b1001_1100_0110_0011_1001_1100_0110_0011)
+                .await
         } else {
-            self.run(-steps, 0b0011_0110_1100_1001_0011_0110_1100_1001).await
+            self.run(-steps, 0b0011_0110_1100_1001_0011_0110_1100_1001)
+                .await
         }
     }
 
     // Half step
     pub async fn step_half(&mut self, steps: i32) {
         if steps > 0 {
-            self.run(steps, 0b1001_1000_1100_0100_0110_0010_0011_0001).await
+            self.run(steps, 0b1001_1000_1100_0100_0110_0010_0011_0001)
+                .await
         } else {
-            self.run(-steps, 0b0001_0011_0010_0110_0100_1100_1000_1001).await
+            self.run(-steps, 0b0001_0011_0010_0110_0100_1100_1000_1001)
+                .await
         }
     }
 
@@ -126,7 +137,9 @@ struct OnDrop<F: FnOnce()> {
 
 impl<F: FnOnce()> OnDrop<F> {
     pub fn new(f: F) -> Self {
-        Self { f: MaybeUninit::new(f) }
+        Self {
+            f: MaybeUninit::new(f),
+        }
     }
 
     pub fn defuse(self) {
@@ -144,7 +157,10 @@ impl<F: FnOnce()> Drop for OnDrop<F> {
 async fn main(_spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
     let Pio {
-        mut common, irq0, sm0, ..
+        mut common,
+        irq0,
+        sm0,
+        ..
     } = Pio::new(p.PIO0, Irqs);
 
     let mut stepper = PioStepper::new(&mut common, sm0, irq0, p.PIN_4, p.PIN_5, p.PIN_6, p.PIN_7);

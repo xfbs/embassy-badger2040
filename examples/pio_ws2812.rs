@@ -9,7 +9,8 @@ use embassy_executor::Spawner;
 use embassy_rp::dma::{AnyChannel, Channel};
 use embassy_rp::peripherals::PIO0;
 use embassy_rp::pio::{
-    Common, Config, FifoJoin, Instance, InterruptHandler, Pio, PioPin, ShiftConfig, ShiftDirection, StateMachine,
+    Common, Config, FifoJoin, Instance, InterruptHandler, Pio, PioPin, ShiftConfig, ShiftDirection,
+    StateMachine,
 };
 use embassy_rp::{bind_interrupts, clocks, into_ref, Peripheral, PeripheralRef};
 use embassy_time::{Duration, Ticker, Timer};
@@ -101,7 +102,9 @@ impl<'d, P: Instance, const S: usize, const N: usize> Ws2812<'d, P, S, N> {
         // Precompute the word bytes from the colors
         let mut words = [0u32; N];
         for i in 0..N {
-            let word = (u32::from(colors[i].g) << 24) | (u32::from(colors[i].r) << 16) | (u32::from(colors[i].b) << 8);
+            let word = (u32::from(colors[i].g) << 24)
+                | (u32::from(colors[i].r) << 16)
+                | (u32::from(colors[i].b) << 8);
             words[i] = word;
         }
 
@@ -132,7 +135,9 @@ async fn main(_spawner: Spawner) {
     info!("Start");
     let p = embassy_rp::init(Default::default());
 
-    let Pio { mut common, sm0, .. } = Pio::new(p.PIO0, Irqs);
+    let Pio {
+        mut common, sm0, ..
+    } = Pio::new(p.PIO0, Irqs);
 
     // This is the number of leds in the string. Helpfully, the sparkfun thing plus and adafruit
     // feather boards for the 2040 both have one built in.

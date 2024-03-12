@@ -44,15 +44,24 @@ async fn main(_spawner: Spawner) {
     loop {}
 }
 
-fn multiwrite_bytes(flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH_SIZE>, offset: u32) {
+fn multiwrite_bytes(
+    flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH_SIZE>,
+    offset: u32,
+) {
     info!(">>>> [multiwrite_bytes]");
     let mut read_buf = [0u8; ERASE_SIZE];
     defmt::unwrap!(flash.blocking_read(ADDR_OFFSET + offset, &mut read_buf));
 
-    info!("Addr of flash block is {:x}", ADDR_OFFSET + offset + FLASH_BASE as u32);
+    info!(
+        "Addr of flash block is {:x}",
+        ADDR_OFFSET + offset + FLASH_BASE as u32
+    );
     info!("Contents start with {=[u8]}", read_buf[0..4]);
 
-    defmt::unwrap!(flash.blocking_erase(ADDR_OFFSET + offset, ADDR_OFFSET + offset + ERASE_SIZE as u32));
+    defmt::unwrap!(flash.blocking_erase(
+        ADDR_OFFSET + offset,
+        ADDR_OFFSET + offset + ERASE_SIZE as u32
+    ));
 
     defmt::unwrap!(flash.blocking_read(ADDR_OFFSET + offset, &mut read_buf));
     info!("Contents after erase starts with {=[u8]}", read_buf[0..4]);
@@ -72,15 +81,24 @@ fn multiwrite_bytes(flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH
     }
 }
 
-fn erase_write_sector(flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH_SIZE>, offset: u32) {
+fn erase_write_sector(
+    flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH_SIZE>,
+    offset: u32,
+) {
     info!(">>>> [erase_write_sector]");
     let mut buf = [0u8; ERASE_SIZE];
     defmt::unwrap!(flash.blocking_read(ADDR_OFFSET + offset, &mut buf));
 
-    info!("Addr of flash block is {:x}", ADDR_OFFSET + offset + FLASH_BASE as u32);
+    info!(
+        "Addr of flash block is {:x}",
+        ADDR_OFFSET + offset + FLASH_BASE as u32
+    );
     info!("Contents start with {=[u8]}", buf[0..4]);
 
-    defmt::unwrap!(flash.blocking_erase(ADDR_OFFSET + offset, ADDR_OFFSET + offset + ERASE_SIZE as u32));
+    defmt::unwrap!(flash.blocking_erase(
+        ADDR_OFFSET + offset,
+        ADDR_OFFSET + offset + ERASE_SIZE as u32
+    ));
 
     defmt::unwrap!(flash.blocking_read(ADDR_OFFSET + offset, &mut buf));
     info!("Contents after erase starts with {=[u8]}", buf[0..4]);
@@ -101,16 +119,25 @@ fn erase_write_sector(flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLA
     }
 }
 
-async fn background_read(flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH_SIZE>, offset: u32) {
+async fn background_read(
+    flash: &mut embassy_rp::flash::Flash<'_, FLASH, Async, FLASH_SIZE>,
+    offset: u32,
+) {
     info!(">>>> [background_read]");
 
     let mut buf = [0u32; 8];
     defmt::unwrap!(flash.background_read(ADDR_OFFSET + offset, &mut buf)).await;
 
-    info!("Addr of flash block is {:x}", ADDR_OFFSET + offset + FLASH_BASE as u32);
+    info!(
+        "Addr of flash block is {:x}",
+        ADDR_OFFSET + offset + FLASH_BASE as u32
+    );
     info!("Contents start with {=u32:x}", buf[0]);
 
-    defmt::unwrap!(flash.blocking_erase(ADDR_OFFSET + offset, ADDR_OFFSET + offset + ERASE_SIZE as u32));
+    defmt::unwrap!(flash.blocking_erase(
+        ADDR_OFFSET + offset,
+        ADDR_OFFSET + offset + ERASE_SIZE as u32
+    ));
 
     defmt::unwrap!(flash.background_read(ADDR_OFFSET + offset, &mut buf)).await;
     info!("Contents after erase starts with {=u32:x}", buf[0]);
